@@ -1,13 +1,73 @@
+import sounddevice as sd
+import soundfile as sf
 import numpy as np
-import math
 import copy
 
 class tANS:
-    def __init__(self, symbol_frequencies):
-        self.symbol_frequencies = symbol_frequencies
-        self.state_num = 256
-        self.table_size = len(symbol_frequencies)
+    def __init__(self, _data, _level, _states):
+        self.data = _data
+        self.state_num = _states
+        self.table_size = _level
+        
+        self.symbol_frequencies = self.compute_statistics()
         self.build_tables()
+        
+    def compute_statistics(self):
+        self.data_min = np.min(self.data)
+        self.data_max = np.max(self.data)
+        step_size = (self.data_max - self.data_min) / (self.table_size-1)
+        # quantize
+        self.quantized_data = np.round((self.data - self.data_min) / step_size ).astype(int)
+
+        # calculate symbol apperance count / cumulative count
+        self.prob_dist = np.bincount(self.quantized_data, minlength=self.table_size)
+        frequency = self.adjust_sum_to_power_of_2(self.prob_dist, self.state_num)
+        # print(frequency)
+        # print(f"Frequency Sum: {np.sum(frequency)}")
+        
+        return frequency
+        
+    def adjust_sum_to_power_of_2(self, values, n):
+        target_sum = n
+        current_sum = np.sum(values)
+        
+        # Calculate the scaling factor
+        scaling_factor = target_sum / current_sum
+        
+        # Scale the values and round to the nearest integer
+        scaled_values_float = values * scaling_factor
+        
+        # Ensure all scaled values are at least 1 after rounding
+        scaled_values = np.maximum(1, np.round(scaled_values_float)).astype(np.int64)
+        
+        # Calculate the difference
+        difference = target_sum - np.sum(scaled_values)
+        
+        # Adjust the scaled values to sum to the target sum
+        while difference != 0:
+            if difference > 0:
+                # Find index with maximum fractional part to increment
+                fractional_parts = (scaled_values_float - scaled_values)
+                idx = np.argmax(fractional_parts)
+                scaled_values[idx] += 1
+                difference -= 1
+            else:
+                # Find index with minimum fractional part to decrement, ensuring values remain at least 1
+                fractional_parts = (scaled_values_float - scaled_values)
+                idx = np.argmin(fractional_parts)
+                if scaled_values[idx] > 1:
+                    scaled_values[idx] -= 1
+                    difference += 1
+                else:
+                    # Find next suitable index to decrement
+                    for i in range(len(scaled_values)):
+                        if scaled_values[i] > 1:
+                            scaled_values[i] -= 1
+                            difference += 1
+                            break
+        
+        return scaled_values
+
 
     def build_tables(self):
       # Preparation
@@ -58,11 +118,12 @@ class tANS:
           self.decoding_table[X] = [s, nbBits, newX]
         # print(self.decoding_table)
 
-    def encode(self, input_symbols):
+    def encode(self):
         x = self.state_num
         bit_string = ''
-        self.symbol_length = len(input_symbols)
-        for s in (input_symbols):
+        self.symbol_length = len(self.quantized_data)
+        # print(f"Total length is {self.symbol_length}")
+        for s in (self.quantized_data):
           # print(s)
           nbBits = self.k[s] - (x < self.bound[s])
           x_bin = bin(x)[2:]
@@ -72,15 +133,17 @@ class tANS:
           # print(bit_string)
 
         self.final_state = x
+        print(x)
 
+        return bit_string
 
-        return bit_string, self.final_state
-
-    def decode(self, encoded_bits, final_state):
+    def decode(self, encoded_bits):
         
-        x = final_state
+        x = self.final_state
         decoded_symbols = []
-        for _ in range(self.symbol_length):
+        for i in range(self.symbol_length):
+          if(i%10000 == 0):
+            print(f"Round: {i}") 
           # print(x)
           t = self.decoding_table[x - self.state_num]
           # print(t)
@@ -95,17 +158,22 @@ class tANS:
 
           x = t[2] + int(getBit, 2)
 
-        return decoded_symbols
+        step_size = (self.data_max - self.data_min) / (self.table_size-1)
+        decoded_data = np.array(decoded_symbols)*step_size + self.data_min
+        
+        return decoded_data
         
         
         
 # Example usage
-symbol_frequencies = [1, 1, 2, 3, 7, 17, 34, 63, 63, 34, 17, 7, 3, 2, 1, 1]
-tans = tANS(symbol_frequencies)
+data, fs = sf.read('handel.wav')
 
-input_symbols = [15, 14, 9, 8, 9, 8, 8, 9]
-encoded_bit, final_state = tans.encode(input_symbols)
-print(encoded_bit, final_state)
+tans = tANS(data, 16, 64)
 
-decoded_symbols = tans.decode(encoded_bit, final_state)
-print(decoded_symbols)
+encoded_bits = tans.encode()
+print(len(encoded_bits))
+
+decoded_data = tans.decode(encoded_bits)
+
+sd.play(decoded_data, fs)
+sd.wait()
