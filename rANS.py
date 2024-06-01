@@ -4,6 +4,8 @@ import numpy as np
 import sys
 import time
 
+from util import epsilon_sequence
+
 
 class rANSEncoder:
     def __init__(self, _input, _nlevels) -> None:
@@ -16,6 +18,7 @@ class rANSEncoder:
         self.data_min = 0
         self.prob_dist = None
         self.cum_dist = None
+        print("Using rANS Encoding...")
     
     def compute_statistics(self):
         self.data_min = np.min(self.data)
@@ -89,6 +92,7 @@ class rANSEncoder:
     def decode(self):
         #note that we have reversed the input stream, so decoding can be in normal direction!
         print("Decoding...")
+        print(f"Encoded state: {self.encoded_state}")
         start = time.time()
        
         self.encoded_bitstream = [int(bit) for bit in self.encoded_bitstream]
@@ -116,20 +120,21 @@ class rANSEncoder:
         return decoded_data
 
         
-        
+
+
     
+
+data = epsilon_sequence(0.95,100000,20)
     
 # data = [0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,15,15,12,13,13,13,13,13,13,13,14,15,13]
-data, fs = sf.read('handel.wav')
+# data, fs = sf.read('handel.wav')
 # temp = data[0:1000]
-encoder = rANSEncoder(data, 32)
+encoder = rANSEncoder(data, 20)
 # sd.play(data, fs)
 
 
 encoder.compute_statistics()
 temp = encoder.encode()
 decoded_data = encoder.decode()
-sd.play(decoded_data, fs)
-
-
-sd.wait() # wait until the play has finished
+# sd.play(decoded_data, fs)
+# sd.wait() # wait until the play has finished
