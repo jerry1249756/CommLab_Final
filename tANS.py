@@ -2,6 +2,10 @@ import sounddevice as sd
 import soundfile as sf
 import numpy as np
 import copy
+import time
+
+from util import epsilon_sequence
+
 
 class tANS:
     def __init__(self, _data, _level, _states):
@@ -18,13 +22,15 @@ class tANS:
         step_size = (self.data_max - self.data_min) / (self.table_size-1)
         # quantize
         self.quantized_data = np.round((self.data - self.data_min) / step_size ).astype(int)
-
+        # print(self.quantized_data[:200])
+        
         # calculate symbol apperance count / cumulative count
         self.prob_dist = np.bincount(self.quantized_data, minlength=self.table_size)
+        # print(self.prob_dist)
         frequency = self.adjust_sum_to_power_of_2(self.prob_dist, self.state_num)
         # print(frequency)
         # print(f"Frequency Sum: {np.sum(frequency)}")
-        
+        # print(frequency)
         return frequency
         
     def adjust_sum_to_power_of_2(self, values, n):
@@ -77,6 +83,7 @@ class tANS:
         # print(self.start)
 
         sum_freq = np.sum(self.symbol_frequencies)
+        # print(sum_freq)
         self.k = np.ceil(np.log2(sum_freq / self.symbol_frequencies)).astype(int)
         # print(self.k)
 
@@ -119,6 +126,8 @@ class tANS:
         # print(self.decoding_table)
 
     def encode(self):
+        print("Encoding...")
+        start = time.time()
         x = self.state_num
         bit_string = ''
         self.symbol_length = len(self.quantized_data)
@@ -127,53 +136,75 @@ class tANS:
           # print(s)
           nbBits = self.k[s] - (x < self.bound[s])
           x_bin = bin(x)[2:]
+          # print(nbBits)
           # print(x_bin[-nbBits:])
-          bit_string += x_bin[-nbBits:]
+          if(nbBits > 0):
+            bit_string += x_bin[-nbBits:]
           x = self.encoding_table[self.start[s] + (x >> nbBits)]
           # print(bit_string)
 
         self.final_state = x
-        print(x)
-
+        # print(x)
+        end = time.time()
+        print("Finish Encoding.")
+        
+        temp = self.prob_dist[self.prob_dist>0] / sum(self.prob_dist)
+        print("============= Summary =============")
+        print(f"Number of Input Symbols: {self.symbol_length}")
+        print(f"Total Codeword Length: { len(bit_string)}") # "0b...."
+        # print(f"Average Codeword Length: { len(bit_string)/ self.symbol_length}") # "0b...."
+        print(f"Entropy: {-np.sum(temp * np.log2(temp))}")
+        print(f"Processing time: {end-start} (s)")
+        
         return bit_string
 
     def decode(self, encoded_bits):
         
         x = self.final_state
         decoded_symbols = []
-        for i in range(self.symbol_length):
-          if(i%10000 == 0):
-            print(f"Round: {i}") 
+        encoded_bits = [int(bit) for bit in encoded_bits]
+        print("Decoding...")
+        start = time.time()
+        for _ in range(len(self.data)):
           # print(x)
           t = self.decoding_table[x - self.state_num]
           # print(t)
-          decoded_symbols.insert(0, t[0])
+          decoded_symbols.append(t[0])
           
           # print(encoded_bits)
           if(t[1] == 0):
-            getBit = '0'
+            getBit = [0]
           else:
-            getBit = encoded_bits[-t[1]:]
-            encoded_bits = encoded_bits[:-t[1]]
-
+            if(len(encoded_bits) == 0):
+              getBit = [0]
+            else: 
+              getBit = encoded_bits[-t[1]:]
+              for _ in range(t[1]):
+                    encoded_bits.pop()
+          
+          getBit = ''.join([str(num) for num in getBit])
           x = t[2] + int(getBit, 2)
 
+        decoded_symbols.reverse()
         step_size = (self.data_max - self.data_min) / (self.table_size-1)
         decoded_data = np.array(decoded_symbols)*step_size + self.data_min
-        
+        end = time.time()
+        print("Finish Decoding.")
+        print("============= Summary =============")
+        print(f"Length of Decoding Sequence: {len(decoded_data)}")
+        print(f"Processing time: {end-start} (s)")
         return decoded_data
         
-        
-        
 # Example usage
-data, fs = sf.read('handel.wav')
+# data, fs = sf.read('handel.wav')
 
-tans = tANS(data, 16, 64)
+data = epsilon_sequence(0.95, 200000, 20)
+# print(data[:200])
+tans = tANS(data, 20, 1024)
 
 encoded_bits = tans.encode()
-print(len(encoded_bits))
 
 decoded_data = tans.decode(encoded_bits)
 
-sd.play(decoded_data, fs)
-sd.wait()
+# sd.play(decoded_data, fs)
+# sd.wait()
