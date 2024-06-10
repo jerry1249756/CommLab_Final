@@ -2,6 +2,7 @@ import numpy as np
 import time
 import soundfile as sf
 import sounddevice as sd
+from util import *
 class LZW:
     def __init__(self, _sequence, _nlevels):
         self.data = _sequence
@@ -80,7 +81,9 @@ class LZW:
         print(f"Number of Input Symbols: {len(self.data)}")
         print(f"Number of Input Bits: {len(self.data) * np.log2(self.n_levels)}")
         print(f"Number of Encoded Bits: {len(encoded) * np.ceil(np.log2(self.complete_dict_len))}")
+        print(f"Average Codeword Length: { len(encoded) * np.ceil(np.log2(self.complete_dict_len)) / len(self.data)}")
         print(f"Entropy: {-np.sum(temp * np.log2(temp))}")
+        print(f"Entropy Rate: {calc_entropy_rate(self.quantized_data, self.n_levels)}")
         print(f"Encoding Time: {enc_end - enc_start}")
         print(f"Decoding Time: {dec_end - dec_start}")
         step_size = (self.data_max - self.data_min) / (self.n_levels-1)
@@ -97,7 +100,7 @@ def epsilon_sequence(epsilon, length, n_symbols):
     return sequence
 
 if __name__ == '__main__':
-    data = epsilon_sequence(0.99, 1000000, 20)
-    # data, fs = sf.read('handel.wav')
-    lzw = LZW(data, 20)
+    # data = epsilon_sequence(0.99, 1000000, 20)
+    data, fs = sf.read('handel.wav')
+    lzw = LZW(data, 256)
     lzw.test()
