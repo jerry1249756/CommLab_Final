@@ -61,8 +61,6 @@ class rANSEncoder:
         # D(Q||P), Q: target, P: proposal
         print(f"KL divergence: {entropy(real_prob_dist, est_prob_dist)}")
         return 
-    
-
 
 
     def _encode_helper(self, state, symbol, tot_count):
@@ -162,25 +160,22 @@ class rANSEncoder:
         print(f"Processing time: {end-start} (s)")
         return decoded_data
 
-        
+    def test(self, fs = None):
+        self.compute_statistics()
+        # self.compute_statistics_proposal(14) # use the first 2**n symbols for estimated distribution maximum: 18
+        self.encode()
+        decoded_data = self.decode()
+        sd.play(decoded_data, fs)
+        sd.wait()
 
-
-# Example Usage
-
-## Arbitrary list
+    
+    
 # data = [0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,15,15,12,13,13,13,13,13,13,13,14,15,13]
-## Audio file
-data, fs = sf.read('handel.wav')
-## A biased sequence where a specific symbol would occur with high probability
-# data = epsilon_sequence(0.99,10000,20)
+# data, fs = sf.read('handel.wav')
+# temp = data[0:1000]
+# encoder = rANSEncoder(data, 32)
+# sd.play(data, fs)
 
-encoder = rANSEncoder(data, 32)
-encoder.compute_statistics() # use all data to get accurate distribution
-# encoder.compute_statistics_proposal(18) # use 2**n data to approximate distribution (maximum 18 for handel.wav)
-temp = encoder.encode()
-decoded_data = encoder.decode()
-encoder.calc_KL_divergence()
-
-
-sd.play(decoded_data, fs)
-sd.wait() # wait until the play has finished
+# encoder.test(fs)
+# sd.play(decoded_data, fs)
+# sd.wait() # wait until the play has finished
