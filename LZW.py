@@ -85,8 +85,8 @@ class LZW:
         print(f"Decoding Time: {dec_end - dec_start}")
         step_size = (self.data_max - self.data_min) / (self.n_levels-1)
         decoded_data = np.array(decoded)*step_size + self.data_min
-        #sd.play(decoded_data, fs)
-        #sd.wait()
+        sd.play(decoded_data, fs)
+        sd.wait()
 
 def epsilon_sequence(epsilon, length, n_symbols):
     symbols = list(range(n_symbols))

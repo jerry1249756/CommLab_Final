@@ -152,7 +152,7 @@ class tANS:
         print("============= Summary =============")
         print(f"Number of Input Symbols: {self.symbol_length}")
         print(f"Total Codeword Length: { len(bit_string)}") # "0b...."
-        # print(f"Average Codeword Length: { len(bit_string)/ self.symbol_length}") # "0b...."
+        print(f"Average Codeword Length: { len(bit_string)/ self.symbol_length}") # "0b...."
         print(f"Entropy: {-np.sum(temp * np.log2(temp))}")
         print(f"Processing time: {end-start} (s)")
         
@@ -194,17 +194,22 @@ class tANS:
         print(f"Length of Decoding Sequence: {len(decoded_data)}")
         print(f"Processing time: {end-start} (s)")
         return decoded_data
+      
+    def test(self, fs = None):
+        
+        encoded_bits = self.encode()
+
+        decoded_data = self.decode(encoded_bits)
+        sd.play(decoded_data, fs)
+        sd.wait()
         
 # Example usage
 # data, fs = sf.read('handel.wav')
 
-data = epsilon_sequence(0.95, 200000, 20)
+# data = epsilon_sequence(0.95, 200000, 20)
 # print(data[:200])
-tans = tANS(data, 20, 1024)
-
-encoded_bits = tans.encode()
-
-decoded_data = tans.decode(encoded_bits)
+# tans = tANS(data, 32, 1024)
+# tans.test()
 
 # sd.play(decoded_data, fs)
 # sd.wait()

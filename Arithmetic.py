@@ -169,6 +169,7 @@ class ArithmeticEncoding:
         print(f"Number of Input Symbols: {len(self.data)}")
         print(f"Number of Input Bits: {len(self.data) * np.log2(self.n_levels)}")
         print(f"Number of Encoded Bits: {enc_len}")
+        print(f"Average Codeword Length: { enc_len/ len(self.data)}") # "0b...."
         print(f"Entropy: {-np.sum(temp * np.log2(temp))}")
         print(f"Encoding Time: {enc_end - enc_start}")
         print(f"Decoding Time: {dec_end - dec_start}")

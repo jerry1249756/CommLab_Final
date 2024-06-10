@@ -119,22 +119,21 @@ class rANSEncoder:
         print(f"Processing time: {end-start} (s)")
         return decoded_data
 
-        
-
+    def test(self, fs = None):
+        self.compute_statistics()
+        self.encode()
+        decoded_data = self.decode()
+        sd.play(decoded_data, fs)
+        sd.wait()
 
     
-
-data = epsilon_sequence(0.95,100000,20)
     
 # data = [0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,15,15,12,13,13,13,13,13,13,13,14,15,13]
 # data, fs = sf.read('handel.wav')
 # temp = data[0:1000]
-encoder = rANSEncoder(data, 20)
+# encoder = rANSEncoder(data, 32)
 # sd.play(data, fs)
 
-
-encoder.compute_statistics()
-temp = encoder.encode()
-decoded_data = encoder.decode()
+# encoder.test(fs)
 # sd.play(decoded_data, fs)
 # sd.wait() # wait until the play has finished
